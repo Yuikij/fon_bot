@@ -113,7 +113,7 @@ export const apiConfig = {
     // API端点配置
     endpoints: {
         // 代理端点
-        proxy: 'https://llm-proxy.7757185407649.workers.dev/api/chat'
+        proxy: 'https://llmproxy.yuisama.top/api/chat'
     },
     
     // 请求限制配置
