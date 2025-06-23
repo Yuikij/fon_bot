@@ -79,8 +79,10 @@ async function analyzeImageWithGemini(imageDataUrl, aiType) {
     }
 
     const data = await response.json();
+    console.log('Gemini API完整响应数据:', JSON.stringify(data, null, 2));
     
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        console.error('API响应结构异常:', data);
         throw new Error('Gemini API返回格式异常');
     }
     
@@ -94,24 +96,11 @@ async function analyzeImageWithGemini(imageDataUrl, aiType) {
         return parsed;
     } catch (parseError) {
         console.warn('JSON解析失败:', parseError.message);
-        // 尝试清理content并重新解析
-        try {
-            // 清理可能的问题字符
-            const cleanedContent = content
-                .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '') // 移除控制字符
-                .replace(/\\n/g, '\n') // 处理转义的换行
-                .replace(/\\"/g, '"') // 处理转义的引号
-                .trim();
-            
-            const cleanParsed = JSON.parse(cleanedContent);
-            console.log('清理后JSON解析成功:', cleanParsed);
-            return cleanParsed;
-        } catch (cleanParseError) {
-            console.warn('清理后仍无法解析JSON，尝试文本解析:', cleanParseError.message);
-            const textParsed = parseTextResponse(content);
-            console.log('文本解析结果:', textParsed);
-            return textParsed;
-        }
+        console.log('尝试使用parseTextResponse解析...');
+        // 尝试使用parseTextResponse解析
+        const textParsed = parseTextResponse(content);
+        console.log('文本解析结果:', textParsed);
+        return textParsed;
     }
 }
 
@@ -120,14 +109,37 @@ function parseTextResponse(text) {
     console.log('parseTextResponse输入文本:', text);
     
     // 首先尝试从```json...```代码块中提取JSON
-    const jsonBlockMatch = text.match(/```json\s*({[\s\S]*?})\s*```/);
+    const jsonBlockMatch = text.match(/```json\s*\n?\s*({[\s\S]*?})\s*\n?\s*```/);
     if (jsonBlockMatch) {
         try {
-            const parsed = JSON.parse(jsonBlockMatch[1]);
+            const jsonText = jsonBlockMatch[1].trim();
+            console.log('提取的JSON文本:', jsonText);
+            const parsed = JSON.parse(jsonText);
             console.log('JSON代码块解析成功:', parsed);
             return parsed;
         } catch (e) {
             console.warn('JSON代码块解析失败:', e);
+        }
+    }
+    
+    // 尝试更宽松的JSON代码块匹配
+    const looserJsonBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+    if (looserJsonBlockMatch) {
+        try {
+            const jsonContent = looserJsonBlockMatch[1].trim();
+            console.log('宽松匹配的JSON内容:', jsonContent);
+            // 尝试找到第一个{和最后一个}之间的内容
+            const startBrace = jsonContent.indexOf('{');
+            const endBrace = jsonContent.lastIndexOf('}');
+            if (startBrace !== -1 && endBrace !== -1 && endBrace > startBrace) {
+                const jsonText = jsonContent.substring(startBrace, endBrace + 1);
+                console.log('提取的JSON片段:', jsonText);
+                const parsed = JSON.parse(jsonText);
+                console.log('宽松JSON代码块解析成功:', parsed);
+                return parsed;
+            }
+        } catch (e) {
+            console.warn('宽松JSON代码块解析失败:', e);
         }
     }
     
@@ -144,14 +156,21 @@ function parseTextResponse(text) {
     }
     
     // 更宽松的JSON匹配，处理引号问题
-    const flexibleJsonMatch = text.match(/\{\s*"verdict"\s*:\s*"(PASS|SMASH|上|不上)"\s*,\s*"rating"\s*:\s*(\d+)\s*,\s*"explanation"\s*:\s*"([^"]*?)"\s*\}/);
+    const flexibleJsonMatch = text.match(/\{\s*"verdict"\s*:\s*"(PASS|SMASH|MODERATE|上|不上)"\s*,\s*"rating"\s*:\s*(\d+)\s*,\s*"explanation"\s*:\s*"([^"]*?)"\s*\}/);
     if (flexibleJsonMatch) {
         const verdict = flexibleJsonMatch[1].toUpperCase();
         const rating = parseInt(flexibleJsonMatch[2]);
         const explanation = flexibleJsonMatch[3];
         
+        let finalVerdict = 'PASS';
+        if (verdict === 'SMASH' || verdict === '上') {
+            finalVerdict = 'SMASH';
+        } else if (verdict === 'MODERATE') {
+            finalVerdict = rating >= 7 ? 'SMASH' : 'PASS';
+        }
+        
         const result = {
-            verdict: (verdict === 'SMASH' || verdict === '上') ? 'SMASH' : 'PASS',
+            verdict: finalVerdict,
             rating: Math.min(Math.max(rating, 1), 10),
             explanation: explanation || '分析完成'
         };
@@ -161,13 +180,19 @@ function parseTextResponse(text) {
     
     // 如果JSON解析都失败，回退到文本解析
     console.log('回退到文本解析');
-    const verdictMatch = text.match(/(SMASH|PASS|上|不上)/i);
+    const verdictMatch = text.match(/(SMASH|PASS|MODERATE|上|不上)/i);
     const ratingMatch = text.match(/(\d+)\/10|"rating"\s*:\s*(\d+)|rating[:\s]*(\d+)|评分[:\s]*(\d+)/i);
     
     let verdict = 'PASS';
     if (verdictMatch) {
         const match = verdictMatch[1].toUpperCase();
-        verdict = (match === 'SMASH' || match === '上') ? 'SMASH' : 'PASS';
+        if (match === 'SMASH' || match === '上') {
+            verdict = 'SMASH';
+        } else if (match === 'MODERATE') {
+            // MODERATE根据评分决定
+            const rating = ratingMatch ? parseInt(ratingMatch[1] || ratingMatch[2] || ratingMatch[3] || ratingMatch[4]) || 5 : 5;
+            verdict = rating >= 7 ? 'SMASH' : 'PASS';
+        }
     }
     
     let rating = 5;
