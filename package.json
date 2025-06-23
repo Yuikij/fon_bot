@@ -1,0 +1,37 @@
+{
+  "name": "ai-rating-system",
+  "version": "1.0.0",
+  "description": "AI图片评分系统 - 支持环境变量的纯前端项目",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server . -p 8000 -o",
+    "build": "node build.js",
+    "build:dev": "NODE_ENV=development node build.js development",
+    "build:prod": "NODE_ENV=production node build.js production", 
+    "build:test": "NODE_ENV=test node build.js test",
+    "serve:dev": "npm run build:dev && npx http-server dist/dev -p 8001 -o",
+    "serve:prod": "npm run build:prod && npx http-server dist/prod -p 8002 -o",
+    "serve:test": "npm run build:test && npx http-server dist/test -p 8003 -o",
+    "clean": "rm -rf dist",
+    "help": "echo '可用命令:\\n  npm run dev - 开发模式启动\\n  npm run build:dev - 构建开发版本\\n  npm run build:prod - 构建生产版本\\n  npm run serve:prod - 构建并启动生产版本\\n\\n环境变量示例:\\n  GEMINI_API_KEY=your_key npm run build:prod'"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "keywords": [
+    "ai",
+    "image-analysis",
+    "frontend",
+    "vanilla-js",
+    "environment-variables"
+  ],
+  "author": "AI Rating System",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 

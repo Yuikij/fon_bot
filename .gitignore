@@ -1,0 +1,40 @@
+# API密钥配置文件
+keys.js
+
+# 环境变量文件
+.env
+.env.local
+.env.production
+env.production.json
+env.test.json
+
+# 构建生成的环境变量注入脚本（保留开发版本）
+# env-inject.js
+
+# 构建输出
+dist/
+build/
+
+# 依赖
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 日志文件
+*.log
+
+# 操作系统生成的文件
+.DS_Store
+Thumbs.db
+
+# 编辑器配置
+.vscode/
+.idea/
+
+# 临时文件
+*.tmp
+*.temp
+
+# 部署信息
+deploy-info.json 

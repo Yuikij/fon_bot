@@ -1,0 +1,143 @@
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能图像评分系统 - AI驱动的图像分析平台</title>
+    <meta name="description" content="使用先进的AI技术分析图像内容，提供专业的评分和详细分析报告">
+    
+    <!-- 现代字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 样式表 -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+<body>
+    <!-- 主题切换按钮 -->
+    <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">
+        <span>🌙</span>
+    </button>
+
+    <div class="container">
+        <!-- 头部区域 -->
+        <header>
+            <h1>智能图像评分系统</h1>
+            <p class="subtitle">基于先进AI技术的图像内容分析与评分平台</p>
+        </header>
+        
+        <!-- 免责声明 -->
+        <div class="disclaimer" id="disclaimer">
+            <button class="close-btn" id="close-disclaimer" aria-label="关闭免责声明">×</button>
+            <p>⚠️ <strong>使用须知：</strong> 本系统仅供娱乐参考，AI分析结果基于外观特征，不代表任何价值判断。请理性使用，避免上传敏感内容。</p>
+        </div>
+
+        <!-- AI分析模式选择 -->
+        <div class="ai-type-selector">
+            <p>选择分析模式</p>
+            <div class="ai-type-options">
+                <label class="ai-type-option">
+                    <input type="radio" name="ai-type" value="brief">
+                    <span class="ai-type-name">简洁模式</span>
+                    <span class="ai-type-desc">快速分析，简明扼要</span>
+                </label>
+                <label class="ai-type-option">
+                    <input type="radio" name="ai-type" value="descriptive" checked>
+                    <span class="ai-type-name">详细模式</span>
+                    <span class="ai-type-desc">深度分析，详细描述</span>
+                </label>
+                <label class="ai-type-option">
+                    <input type="radio" name="ai-type" value="novel">
+                    <span class="ai-type-name">专业模式</span>
+                    <span class="ai-type-desc">全面分析，专业报告</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 图片上传区域 -->
+        <div class="upload-area" id="upload-area">
+            <div class="upload-inner">
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64">
+                    <path d="M11 14.9861C11 15.5384 11.4477 15.9861 12 15.9861C12.5523 15.9861 13 15.5384 13 14.9861V7.82831L16.2428 11.0711L17.657 9.65685L12.0001 4L6.34326 9.65685L7.75748 11.0711L11 7.82854V14.9861Z" fill="currentColor"/>
+                    <path d="M4 14H6V18H18V14H20V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V14Z" fill="currentColor"/>
+                </svg>
+                <p>拖拽图片到此处或<span class="upload-btn">点击选择文件</span></p>
+                <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    支持 JPEG、PNG、WebP 格式，最大 20MB
+                </div>
+                <input type="file" id="file-input" accept="image/*" hidden>
+            </div>
+        </div>
+
+        <!-- 图片预览区域 -->
+        <div class="preview-container hidden" id="preview-container">
+            <div class="image-preview-container">
+                <img id="preview-image" src="" alt="待分析的图片">
+            </div>
+            <div class="preview-actions">
+                <button id="start-analysis-btn" class="btn">
+                    🚀 开始AI分析
+                </button>
+                <button id="change-image-btn" class="btn btn-secondary">
+                    🔄 更换图片
+                </button>
+            </div>
+        </div>
+
+        <!-- 分析结果区域 -->
+        <div class="result-container hidden" id="result-container">
+            <div class="image-preview-container-result" id="image-preview-container-result">
+                <img id="image-preview" src="" alt="分析的图片">
+                <div class="image-overlay">
+                    <p>点击或拖拽以更换图片</p>
+                </div>
+            </div>
+            
+            <!-- 加载状态 -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>AI正在深度分析中，请稍候...</p>
+            </div>
+            
+            <!-- 分析结果 -->
+            <div id="result" class="result hidden">
+                <div class="verdict-container">
+                    <h2 id="verdict">分析结果</h2>
+                    <div id="verdict-icon"></div>
+                </div>
+                <div id="explanation"></div>
+                <div class="result-actions">
+                    <button id="try-again" class="btn">
+                        🔄 重新分析
+                    </button>
+                    <!-- 保存和分享按钮将动态添加到这里 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 查看历史记录按钮 -->
+        <button class="btn view-saved-btn" id="view-saved">
+            📚 查看分析历史
+        </button>
+    </div>
+
+    <!-- 弹窗遮罩 -->
+    <div id="popup-overlay">
+        <div class="popup-card">
+            <button class="close-popup" aria-label="关闭弹窗">×</button>
+            <div id="popup-content">
+                <!-- 弹窗内容将动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 环境变量注入 -->
+    <script src="env-inject.js"></script>
+    
+    <!-- 主脚本 -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
