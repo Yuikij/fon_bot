@@ -33,12 +33,8 @@ const environment = args[0] || 'development';
 const config = buildConfig[environment];
 
 if (!config) {
-    console.error(`❌ 未知的环境: ${environment}`);
-    console.log('可用环境: development, production, test');
     process.exit(1);
 }
-
-console.log(`🔨 开始构建环境: ${environment}`);
 
 // 创建输出目录
 if (!fs.existsSync(config.outputDir)) {
@@ -63,9 +59,7 @@ filesToCopy.forEach(file => {
     if (fs.existsSync(file)) {
         const destPath = path.join(config.outputDir, file);
         fs.copyFileSync(file, destPath);
-        console.log(`✅ 复制: ${file} -> ${destPath}`);
     } else {
-        console.warn(`⚠️  文件不存在: ${file}`);
     }
 });
 
@@ -94,12 +88,9 @@ window.process = window.process || {};
 window.process.env = ${JSON.stringify(injectedEnv, null, 2)};
 window.ENV = ${JSON.stringify(injectedEnv, null, 2)};
 window.ENVIRONMENT = '${environment}';
-console.log('[Build] 注入的环境变量:', window.ENV);
 `;
 
 fs.writeFileSync(path.join(config.outputDir, 'env-inject.js'), envScript);
-console.log(`✅ 环境变量注入脚本已生成: env-inject.js`);
-console.log(`📊 注入了 ${Object.keys(injectedEnv).length} 个环境变量:`, Object.keys(injectedEnv));
 
 // 生成部署信息
 const deployInfo = {
@@ -112,10 +103,6 @@ fs.writeFileSync(
     path.join(config.outputDir, 'deploy-info.json'),
     JSON.stringify(deployInfo, null, 2)
 );
-
-console.log(`🎉 构建完成: ${config.outputDir}`);
-console.log(`📋 环境: ${environment}`);
-console.log(`⏰ 构建时间: ${deployInfo.buildTime}`);
 
 // 生成启动说明
 const startupGuide = `
@@ -138,6 +125,4 @@ const startupGuide = `
 3. 全局变量: window.ENV_CONFIG = { GEMINI_API_KEY: 'your_key' }
 `;
 
-fs.writeFileSync(path.join(config.outputDir, 'README.md'), startupGuide);
-
-console.log('📖 启动说明已生成: README.md'); 
+fs.writeFileSync(path.join(config.outputDir, 'README.md'), startupGuide); 

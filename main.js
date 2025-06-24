@@ -8,9 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 初始化环境变量
     try {
         await initEnv();
-        console.log('环境变量初始化完成');
     } catch (error) {
-        console.error('环境变量初始化失败:', error);
     }
     // --- DOM Elements ---
     const elements = {
@@ -63,13 +61,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             const aiType = document.querySelector('input[name="ai-type"]:checked').value;
-            console.log('开始分析图片，AI类型:', aiType);
             
             const response = await analyzeImage(selectedImageDataUrl, aiType);
-            console.log('API响应:', response);
             
             currentAnalysisResult = { ...response, image: selectedImageDataUrl, aiType };
-            console.log('准备显示结果:', currentAnalysisResult);
             
             // A short delay to make the loading feel more deliberate
             setTimeout(() => {
@@ -79,7 +74,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 500);
 
         } catch (error) {
-            console.error('分析图片时出错:', error);
             ui.displayError('出错了，请重新上传图片或刷新页面。检查控制台获取详细信息。');
         }
     }
@@ -112,7 +106,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 'image/png');
             
         } catch (error) {
-            console.error('生成结果图片失败:', error);
             alert('保存图片失败，请重试');
         }
     }
@@ -134,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             img.onload = () => {
                 try {
                     const { rating, verdict, explanation } = result;
-                    const ratingLabel = getRatingLabel(rating);
+        const ratingLabel = getRatingLabel(rating);
                     
                     // 计算文本行数和所需高度
                     ctx.font = '18px Arial, sans-serif';
@@ -340,10 +333,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function handleViewSavedResult(index) {
-        console.log('handleViewSavedResult被调用，索引:', index);
         const result = store.getSavedResults()[index];
-        console.log('获取到的结果数据:', result);
-        ui.showPopup(result);
+        if (result) {
+            ui.showPopup(result);
+        }
     }
     
     async function handleTryAgain() {

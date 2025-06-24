@@ -73,163 +73,163 @@ async function analyzeImageWithGemini(imageDataUrl, aiType) {
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API错误响应:', errorText);
-        throw new Error(`Gemini API请求失败: ${response.status} ${response.statusText}`);
+        let errorText = await response.text();
+        try {
+            const errorJson = JSON.parse(errorText);
+            errorText = errorJson.error ? errorJson.error.message : errorText;
+        } catch (e) {
+            // 保持为纯文本
+        }
+        throw new Error(`API返回错误 (状态 ${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Gemini API完整响应数据:', JSON.stringify(data, null, 2));
     
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        console.error('API响应结构异常:', data);
-        throw new Error('Gemini API返回格式异常');
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts[0]) {
+        throw new Error('API响应格式不正确，缺少必要数据');
     }
     
     const content = data.candidates[0].content.parts[0].text;
-    console.log('Gemini API返回的原始内容:', content);
-    
+
     try {
-        // 尝试解析JSON响应
         const parsed = JSON.parse(content);
-        console.log('JSON解析成功:', parsed);
         return parsed;
     } catch (parseError) {
-        console.warn('JSON解析失败:', parseError.message);
-        console.log('尝试使用parseTextResponse解析...');
-        // 尝试使用parseTextResponse解析
-        const textParsed = parseTextResponse(content);
-        console.log('文本解析结果:', textParsed);
-        return textParsed;
+        try {
+            const textParsed = parseTextResponse(content);
+            return textParsed;
+        } catch (finalError) {
+            throw new Error(`JSON解析和文本解析均失败: ${finalError.message}`);
+        }
     }
 }
 
 // 文本响应解析函数
 function parseTextResponse(text) {
-    console.log('parseTextResponse输入文本:', text);
-    
-    // 首先尝试从```json...```代码块中提取JSON
-    const jsonBlockMatch = text.match(/```json\s*\n?\s*({[\s\S]*?})\s*\n?\s*```/);
-    if (jsonBlockMatch) {
-        try {
-            const jsonText = jsonBlockMatch[1].trim();
-            console.log('提取的JSON文本:', jsonText);
+    try {
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+            const jsonText = jsonMatch[1];
             const parsed = JSON.parse(jsonText);
-            console.log('JSON代码块解析成功:', parsed);
             return parsed;
-        } catch (e) {
-            console.warn('JSON代码块解析失败:', e);
         }
+    } catch (e) {
+        // 忽略错误，尝试更宽松的解析
     }
-    
-    // 尝试更宽松的JSON代码块匹配
-    const looserJsonBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-    if (looserJsonBlockMatch) {
-        try {
-            const jsonContent = looserJsonBlockMatch[1].trim();
-            console.log('宽松匹配的JSON内容:', jsonContent);
-            // 尝试找到第一个{和最后一个}之间的内容
-            const startBrace = jsonContent.indexOf('{');
-            const endBrace = jsonContent.lastIndexOf('}');
-            if (startBrace !== -1 && endBrace !== -1 && endBrace > startBrace) {
-                const jsonText = jsonContent.substring(startBrace, endBrace + 1);
-                console.log('提取的JSON片段:', jsonText);
+
+    try {
+        // 尝试在没有```json标记的情况下查找JSON对象
+        const jsonContentMatch = text.match(/{\s*["']verdict["']\s*:/);
+        if (jsonContentMatch) {
+            const startIndex = jsonContentMatch.index;
+            // 找到匹配的大括号
+            let balance = 0;
+            let endIndex = -1;
+            for (let i = startIndex; i < text.length; i++) {
+                if (text[i] === '{') {
+                    balance++;
+                } else if (text[i] === '}') {
+                    balance--;
+                    if (balance === 0) {
+                        endIndex = i + 1;
+                        break;
+                    }
+                }
+            }
+            
+            if (endIndex !== -1) {
+                const jsonText = text.substring(startIndex, endIndex);
                 const parsed = JSON.parse(jsonText);
-                console.log('宽松JSON代码块解析成功:', parsed);
                 return parsed;
             }
-        } catch (e) {
-            console.warn('宽松JSON代码块解析失败:', e);
         }
+    } catch (e) {
+        // 忽略错误，继续
     }
-    
-    // 尝试直接从文本中找到JSON对象
-    const jsonMatch = text.match(/({[\s\S]*?"verdict"[\s\S]*?"rating"[\s\S]*?"explanation"[\s\S]*?})/);
-    if (jsonMatch) {
-        try {
-            const parsed = JSON.parse(jsonMatch[1]);
-            console.log('内联JSON解析成功:', parsed);
-            return parsed;
-        } catch (e) {
-            console.warn('内联JSON解析失败:', e);
-        }
-    }
-    
-    // 更宽松的JSON匹配，处理引号问题
-    const flexibleJsonMatch = text.match(/\{\s*"verdict"\s*:\s*"(PASS|SMASH|MODERATE|上|不上)"\s*,\s*"rating"\s*:\s*(\d+)\s*,\s*"explanation"\s*:\s*"([^"]*?)"\s*\}/);
-    if (flexibleJsonMatch) {
-        const verdict = flexibleJsonMatch[1].toUpperCase();
-        const rating = parseInt(flexibleJsonMatch[2]);
-        const explanation = flexibleJsonMatch[3];
-        
-        let finalVerdict = 'PASS';
-        if (verdict === 'SMASH' || verdict === '上') {
-            finalVerdict = 'SMASH';
-        } else if (verdict === 'MODERATE') {
-            finalVerdict = rating >= 7 ? 'SMASH' : 'PASS';
-        }
-        
-        const result = {
-            verdict: finalVerdict,
-            rating: Math.min(Math.max(rating, 1), 10),
-            explanation: explanation || '分析完成'
-        };
-        console.log('灵活JSON解析成功:', result);
+
+    // 尝试不严格的JSON解析
+    try {
+        const result = flexibleJsonParse(text);
         return result;
+    } catch (e) {
+        // 最终回退到纯文本解析
     }
     
-    // 如果JSON解析都失败，回退到文本解析
-    console.log('回退到文本解析');
-    const verdictMatch = text.match(/(SMASH|PASS|MODERATE|上|不上)/i);
-    const ratingMatch = text.match(/(\d+)\/10|"rating"\s*:\s*(\d+)|rating[:\s]*(\d+)|评分[:\s]*(\d+)/i);
-    
-    let verdict = 'PASS';
-    if (verdictMatch) {
-        const match = verdictMatch[1].toUpperCase();
-        if (match === 'SMASH' || match === '上') {
-            verdict = 'SMASH';
-        } else if (match === 'MODERATE') {
-            // MODERATE根据评分决定
-            const rating = ratingMatch ? parseInt(ratingMatch[1] || ratingMatch[2] || ratingMatch[3] || ratingMatch[4]) || 5 : 5;
-            verdict = rating >= 7 ? 'SMASH' : 'PASS';
-        }
-    }
-    
-    let rating = 5;
-    if (ratingMatch) {
-        rating = parseInt(ratingMatch[1] || ratingMatch[2] || ratingMatch[3] || ratingMatch[4]) || 5;
-    }
-    
-    // 提取解释文本（移除JSON标记）
-    let explanation = text
-        .replace(/```json[\s\S]*?```/g, '')
-        .replace(/\{[\s\S]*?\}/g, '')
-        .replace(/(verdict|rating|explanation)[:\s]*[^\n]*/gi, '')
-        .trim();
-    
-    if (!explanation) {
-        explanation = '分析完成';
-    }
-    
+    return fallbackToTextParsing(text);
+}
+
+/**
+ * 当所有JSON解析都失败时，回退到基于文本的解析。
+ * @param {string} text - AI模型的原始文本输出。
+ * @returns {object} - 一个包含从文本中提取的数据的对象。
+ */
+function fallbackToTextParsing(text) {
     const result = {
-        verdict,
-        rating: Math.min(Math.max(rating, 1), 10),
-        explanation
+        verdict: "UNKNOWN",
+        rating: 0,
+        explanation: text, // 原始文本作为解释
     };
+
+    const verdictMatch = text.match(/["']?verdict["']?\s*:\s*["']?(\w+)["']?/i);
+    if (verdictMatch && verdictMatch[1]) {
+        result.verdict = verdictMatch[1].toUpperCase();
+    }
+
+    const ratingMatch = text.match(/["']?rating["']?\s*:\s*(\d+)/i);
+    if (ratingMatch && ratingMatch[1]) {
+        result.rating = parseInt(ratingMatch[1], 10);
+    }
+
+    const explanationMatch = text.match(/["']?explanation["']?\s*:\s*["']([\s\S]*?)["']?/i);
+    if (explanationMatch && explanationMatch[1]) {
+        result.explanation = explanationMatch[1].trim();
+    }
     
-    console.log('文本解析结果:', result);
     return result;
 }
 
+/**
+ * @returns {object|null} 解析后的JSON对象，如果无法解析则返回null
+ */
+function flexibleJsonParse(str) {
+    try {
+        // 尝试直接解析
+        return JSON.parse(str);
+    } catch (e1) {
+        try {
+            // 尝试移除代码块标记
+            const cleaned = str.replace(/```json\s*|\s*```/g, '');
+            return JSON.parse(cleaned);
+        } catch (e2) {
+            try {
+                // 尝试使用eval，但要注意安全风险（这里假设输入是可信的）
+                // 在更复杂的场景中，可能需要一个更安全的解析器
+                let evalResult;
+                // eslint-disable-next-line no-eval
+                eval(`evalResult = ${str}`);
+                return evalResult;
+            } catch (e3) {
+                // 尝试提取大括号内的内容
+                const match = str.match(/{[\s\S]*}/);
+                if (match) {
+                    try {
+                        return JSON.parse(match[0]);
+                    } catch (e4) {
+                        // 所有尝试都失败
+                    }
+                }
+            }
+        }
+    }
+    throw new Error("所有灵活的JSON解析方法都失败了");
+}
 
 // 主要导出函数 - 自动选择可用的API
 export async function analyzeImage(imageDataUrl, aiType) {
     // 优先级：websim > 直接调用Gemini > 代理（如果可用）
     try {
         return await analyzeImageWithGemini(imageDataUrl, aiType);
-        
     } catch (error) {
-        console.error('所有API调用方法都失败:', error);
-        throw error;
+        throw new Error(`API请求失败: ${error.message}`);
     }
 }

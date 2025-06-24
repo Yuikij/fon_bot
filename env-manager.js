@@ -18,17 +18,14 @@ class EnvManager {
         try {
             // 1. 确定当前环境
             this.currentEnvironment = this.detectEnvironment();
-            console.log(`[EnvManager] 当前环境: ${this.currentEnvironment}`);
 
             // 2. 从环境变量加载配置
             this.loadFromEnvironment();
 
             this.isLoaded = true;
-            console.log('[EnvManager] 环境变量加载完成:', this.env);
             
             return this.env;
         } catch (error) {
-            console.error('[EnvManager] 环境变量加载失败:', error);
             // 返回默认配置
             return this.getDefaultConfig();
         }
@@ -103,9 +100,7 @@ class EnvManager {
         }
 
         if (count > 0) {
-            console.log(`[EnvManager] 从环境变量加载了 ${count} 个配置`);
         } else {
-            console.warn('[EnvManager] 未找到任何环境变量，使用默认配置');
             this.env = this.getDefaultConfig();
         }
     }
@@ -147,7 +142,6 @@ class EnvManager {
     set(key, value) {
         this.env[key] = value;
         // 注意：由于只使用环境变量，运行时设置仅在当前会话有效
-        console.warn('[EnvManager] 运行时设置的环境变量仅在当前会话有效');
     }
 
     /**

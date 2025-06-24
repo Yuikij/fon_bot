@@ -16,5 +16,4 @@ window.ENV = {
   "DEBUG": "true",
   "NODE_ENV": "development"
 };
-window.ENVIRONMENT = 'development';
-console.log('[Env] 默认开发环境变量已加载:', window.ENV); 
+window.ENVIRONMENT = 'development'; 
