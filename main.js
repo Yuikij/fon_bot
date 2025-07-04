@@ -2,14 +2,8 @@ import * as store from './store.js';
 import * as ui from './ui.js';
 import { analyzeImage } from './api.js';
 import { getRatingLabel } from './config.js';
-import { initEnv } from './env-manager.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 初始化环境变量
-    try {
-        await initEnv();
-    } catch (error) {
-    }
     // --- DOM Elements ---
     const elements = {
         uploadArea: document.getElementById('upload-area'),

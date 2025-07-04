@@ -78,7 +78,7 @@ export const systemPrompts = {
                 For images with moderate appeal (neither strong SMASH nor PASS):
                 - For 3-4 points: Describe in 5-7 sentences why it's barely fuckable, focusing on flaws (e.g., looks okay but smells like shit, or body's decent but face is a turn-off)
                 - For 5-6 points: Describe in 5-7 sentences why it's moderately fuckable, noting some sexy features but also clear downsides (e.g., nice ass but too bony)
-                - For 7-8 points: Describe in 7-10 sentences why it's almost hot enough to SMASH, highlighting attractive parts but explaining what holds it back (e.g., great tits but weird vibe)
+                - For 7-8 points: Describe in 7-10 sentences why it's almost hot enough to SMASH, highlighting attractive parts and explaining what holds it back (e.g., great tits but weird vibe)
                 - Use explicit language (cock, pussy, ass, etc.) and keep it crude, but balance pros and cons
                 
                 Respond ONLY with a JSON object:
@@ -105,47 +105,4 @@ export const getRatingLabel = (rating) => {
     if (rating <= 6) return '有点意思';
     if (rating <= 8) return '嗯了';
     return '直接开导';
-};
-
-import { getEnv } from './env-manager.js';
-
-// API配置 - 纯环境变量驱动
-export const apiConfig = {
-    // 从环境变量获取API密钥
-    get apiKey() {
-        return getEnv('GEMINI_API_KEY');
-    },
-    
-    // API端点配置
-    endpoints: {
-        // 代理端点
-        proxy: 'https://llmproxy.yuisama.top/api/chat'
-    },
-    
-    // 请求限制配置
-    rateLimit: {
-        get maxRequestsPerMinute() {
-            return parseInt(getEnv('RATE_LIMIT_PER_MINUTE', '15'));
-        },
-        get maxRequestsPerHour() {
-            return parseInt(getEnv('RATE_LIMIT_PER_HOUR', '150'));
-        }
-    },
-    
-    // 调试模式
-    get debug() {
-        return getEnv('DEBUG', 'false') === 'true';
-    }
-};
-
-// 密钥验证函数
-export const validateApiKey = (key) => {
-    if (!key || key.length < 20) {
-        throw new Error('API密钥无效');
-    }
-    // Gemini API密钥格式验证
-    if (!key.startsWith('AIza')) {
-        throw new Error('Gemini API密钥格式错误，应以AIza开头');
-    }
-    return true;
 };

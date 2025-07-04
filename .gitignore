@@ -38,3 +38,6 @@ Thumbs.db
 
 # 部署信息
 deploy-info.json 
+
+.wrangler/
+.dev.vars
